@@ -1,10 +1,10 @@
-name: Destroy Infrastructure
+name: '[MANUAL] Deploy Application'
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Ejecución manual
 
 jobs:
-  destroy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -14,19 +14,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/free-tier-app-github-actions-role
-          aws-region: us-east-1
+          aws-region: us-east-2
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Terraform Init
-        run: terraform init
-        working-directory: terraform
+      - name: Build, tag, and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: free-tier-app-repo
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve -var="db_username=${{ secrets.DB_USERNAME }}" -var="db_password=${{ secrets.DB_PASSWORD }}"
-        working-directory: terraform
+      - name: Force ECS Service Update
+        run: |
+          aws ecs update-service \
+            --cluster free-tier-app-cluster \
+            --service free-tier-app-service \
+            --force-new-deployment \
+            --region us-east-2

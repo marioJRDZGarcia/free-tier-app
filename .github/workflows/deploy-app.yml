@@ -1,11 +1,7 @@
-name: Deploy Application
+name: '[MANUAL] Deploy Application'
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'app/**'
+  workflow_dispatch:  # Ejecución manual
 
 jobs:
   deploy:
@@ -18,17 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/free-tier-app-github-actions-role
-          aws-region: us-east-1
+          aws-region: us-east-2
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, tag, and push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: free-tier-app-repo
@@ -36,10 +32,10 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ./app
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
-      - name: Update ECS Service
+      - name: Force ECS Service Update
         run: |
           aws ecs update-service \
             --cluster free-tier-app-cluster \
             --service free-tier-app-service \
             --force-new-deployment \
-            --region us-east-1
+            --region us-east-2

@@ -1,12 +1,7 @@
-name: Deploy Infrastructure
+name: '[MANUAL] Deploy Infrastructure'
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'terraform/**'
+  workflow_dispatch:  # Permite ejecución manual
 
 jobs:
   deploy:
@@ -19,11 +14,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/free-tier-app-github-actions-role
-          aws-region: us-east-1
+          aws-region: us-east-2
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -41,12 +36,5 @@ jobs:
         working-directory: terraform
 
       - name: Save outputs
-        run: |
-          terraform output -json > outputs.json
+        run: terraform output -json > outputs.json
         working-directory: terraform
-
-      - name: Upload outputs
-        uses: actions/upload-artifact@v3
-        with:
-          name: terraform-outputs
-          path: terraform/outputs.json
