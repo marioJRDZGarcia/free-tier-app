@@ -1,0 +1,24 @@
+# Terraform
+**/.terraform/*
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfvars
+**/*.tfvars.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Secrets
+.env
+*.pem
+
+# Otros
+.idea/
+.vscode/
+outputs.json
